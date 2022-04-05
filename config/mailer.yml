@@ -1,0 +1,97 @@
+keychain:
+  barong:
+    algorithm: RS256
+    value: "changeme"
+  peatio:
+    algorithm: RS256
+    value: "changeme"
+
+topics:
+  barong_system:
+    name: barong.events.system
+    signer: barong
+  barong_model:
+    name: barong.events.model
+    signer: barong
+  peatio:
+    name: peatio.events.model
+    signer: peatio
+
+events:
+- name: Email Confirmation
+  key: codes.email.confirmation.code
+  topic: barong_system
+  templates:
+    en:
+      subject: Registration Confirmation
+      template_path: templates/en/email_confirmation.tpl
+    vi:
+      subject: Xác nhận đăng ký
+      template_path: templates/vi/email_confirmation.tpl
+
+# - name: Password Reset
+#   key: user.password.reset.token
+#   topic: barong_system
+#   templates:
+#     EN:
+#       subject: Password Reset
+#       template_path: templates/en/password_reset.html
+#     RU:
+#       subject: Сброс Пароля
+#       template_path: templates/ru/password_reset.html
+
+# - name: Label Created
+#   key: label.created
+#   topic: barong_model
+#   expression: |
+#     record.key in ["phone", "profile", "document"] &&
+#     record.value in ["verified", "rejected"]
+#   templates:
+#     EN:
+#       subject: Account Details Updated
+#       template_path: templates/en/label_created.html
+
+# - name: Label Updated
+#   key: label.updated
+#   topic: barong_model
+#   expression: |
+#     record.key in ["phone", "profile", "document"] &&
+#     record.value in ["verified", "rejected"]
+#   templates:
+#     EN:
+#       subject: Account Details Updated
+#       template_path: templates/en/label_created.html
+
+# - name: Deposit Accepted
+#   key: deposit.updated
+#   topic: peatio
+#   expression: changes.state == "submitted" && record.state == "accepted"
+#   templates:
+#     EN:
+#       subject: Deposit Accepted
+#       template_path: templates/en/deposit_accepted.html
+
+# - name: Session Create
+#   key: session.create
+#   topic: barong_system
+#   templates:
+#     EN:
+#       subject: New Login
+#       template_path: templates/en/session_create.tpl
+
+# - name: Withdrawal Succeed
+#   key: withdraw.updated
+#   topic: peatio
+#   expression: changes.state in ["errored", "confirming"] && record.state == "succeed"
+#   templates:
+#     EN:
+#       subject: Withdrawal Succeed
+#       template_path: templates/en/withdraw_succeed.html
+
+# - name: New Beneficiary
+#   key: beneficiary.created
+#   topic: peatio
+#   templates:
+#     EN:
+#       subject: New Beneficiary
+#       template_path: templates/en/new_beneficiary.html
