@@ -3,11 +3,11 @@ package config
 import (
 	"bytes"
 	"html/template"
+	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	"github.com/zsmartex/go-mailer/pkg/eventapi"
-	"github.com/zsmartex/pkg/services"
+	"github.com/zsmartex/pkg/v2/log"
 )
 
 // Template represents email massage content and subject.
@@ -51,27 +51,27 @@ func (t *Template) Content(data interface{}) (string, error) {
 	buff := new(bytes.Buffer)
 	var tpl *template.Template
 
-	if strings.TrimSpace(t.Template) != "" {
-		tpl, err = template.New(t.Subject).Parse(t.Template)
-	} else {
-		tpl, err = template.ParseFiles(t.TemplatePath)
+	funcs := template.FuncMap{
+		"upcase":   strings.ToUpper,
+		"downcase": strings.ToLower,
 	}
 
+	tpl, err = template.New(filepath.Base(t.TemplatePath)).Funcs(funcs).ParseFiles(t.TemplatePath)
 	if err != nil {
+		log.Info(1)
 		return "", err
 	}
 
-	if err := tpl.Execute(buff, &data); err != nil {
+	if err := tpl.Execute(buff, data); err != nil {
+		log.Info(data)
 		return "", err
 	}
 
 	return buff.String(), nil
 }
 
-var Logger *logrus.Entry
-
 func InitConfig() (err error) {
-	Logger = services.NewLoggerService("Mailer")
+	log.New("Mailer")
 
 	return nil
 }

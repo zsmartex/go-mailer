@@ -3,7 +3,6 @@ package consumer
 import (
 	"errors"
 	"fmt"
-	"net/mail"
 	"net/smtp"
 	"strings"
 )
@@ -32,12 +31,6 @@ type EmailSender struct {
 	Email *Email
 }
 
-func encodeRFC2047(str string) string {
-	// use mail's rfc2047 to encode any string
-	addr := mail.Address{Name: str, Address: ""}
-	return strings.Trim(addr.String(), " <>")
-}
-
 func NewEmailSender(conf SMTPConf, email Email) *EmailSender {
 	return &EmailSender{&conf, &email}
 }
@@ -55,7 +48,7 @@ func (e *EmailSender) Send() error {
 	headers := make(map[string]string)
 	headers["From"] = fmt.Sprintf(`%s <%s>`, e.Email.FromName, e.Email.FromAddress)
 	headers["To"] = e.Email.ToAddress
-	headers["Subject"] = encodeRFC2047(e.Email.Subject)
+	headers["Subject"] = e.Email.Subject
 	headers["Content-Type"] = `text/html; charset="UTF-8"`
 
 	message := ""

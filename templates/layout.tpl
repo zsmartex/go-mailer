@@ -9,13 +9,13 @@
       strong {
         margin: 0 4px;
       }
-      body {
+      .outer-container {
         background-color: #F8F8F8;
         font-family: "Roboto";
         font-size: 14px;
         line-height: 1.4;
         margin: 0;
-        padding: 0;
+        padding: 26px 0;
       }
       .container {
         max-width: 660px;
@@ -77,6 +77,8 @@
   </head>
 
   <body>
-  {{ .Body }}
+    <div class="outer-container">
+      {{ .Body }}
+    </div>
   </body>
 </html>

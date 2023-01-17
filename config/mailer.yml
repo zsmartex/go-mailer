@@ -18,80 +18,66 @@ topics:
     signer: peatio
 
 events:
-- name: Email Confirmation
-  key: codes.email.confirmation.code
-  topic: barong_system
-  templates:
-    en:
-      subject: Registration Confirmation
-      template_path: templates/en/email_confirmation.tpl
-    vi:
-      subject: Xác nhận đăng ký
-      template_path: templates/vi/email_confirmation.tpl
-
-# - name: Password Reset
-#   key: user.password.reset.token
-#   topic: barong_system
-#   templates:
-#     EN:
-#       subject: Password Reset
-#       template_path: templates/en/password_reset.html
-#     RU:
-#       subject: Сброс Пароля
-#       template_path: templates/ru/password_reset.html
-
-# - name: Label Created
-#   key: label.created
-#   topic: barong_model
-#   expression: |
-#     record.key in ["phone", "profile", "document"] &&
-#     record.value in ["verified", "rejected"]
-#   templates:
-#     EN:
-#       subject: Account Details Updated
-#       template_path: templates/en/label_created.html
-
-# - name: Label Updated
-#   key: label.updated
-#   topic: barong_model
-#   expression: |
-#     record.key in ["phone", "profile", "document"] &&
-#     record.value in ["verified", "rejected"]
-#   templates:
-#     EN:
-#       subject: Account Details Updated
-#       template_path: templates/en/label_created.html
-
-# - name: Deposit Accepted
-#   key: deposit.updated
-#   topic: peatio
-#   expression: changes.state == "submitted" && record.state == "accepted"
-#   templates:
-#     EN:
-#       subject: Deposit Accepted
-#       template_path: templates/en/deposit_accepted.html
-
-# - name: Session Create
-#   key: session.create
-#   topic: barong_system
-#   templates:
-#     EN:
-#       subject: New Login
-#       template_path: templates/en/session_create.tpl
-
-# - name: Withdrawal Succeed
-#   key: withdraw.updated
-#   topic: peatio
-#   expression: changes.state in ["errored", "confirming"] && record.state == "succeed"
-#   templates:
-#     EN:
-#       subject: Withdrawal Succeed
-#       template_path: templates/en/withdraw_succeed.html
-
-# - name: New Beneficiary
-#   key: beneficiary.created
-#   topic: peatio
-#   templates:
-#     EN:
-#       subject: New Beneficiary
-#       template_path: templates/en/new_beneficiary.html
+  - name: Registration Confirmation
+    key: codes.email.register.confirmation.code
+    topic: barong_system
+    templates:
+      en:
+        subject: Registration Confirmation
+        template_path: templates/en/register_confirmation.tpl
+  - name: Login Confirmation
+    key: codes.email.login.confirmation.code
+    topic: barong_system
+    templates:
+      en:
+        subject: Login Confirmation
+        template_path: templates/en/login_confirmation.tpl
+  - name: Reset Password Confirmation
+    key: codes.email.reset_password.confirmation.code
+    topic: barong_system
+    templates:
+      en:
+        subject: Reset Password Confirmation
+        template_path: templates/en/reset_passwword_confirmation.tpl
+  - name: OTP Verification Confirmation
+    key: codes.email.otp.confirmation.code
+    topic: barong_system
+    templates:
+      en:
+        subject: OTP Verification Confirmation
+        template_path: templates/en/otp_confirmation.tpl
+  - name: Phone Verification Confirmation
+    key: codes.email.phone_verification.confirmation.code
+    topic: barong_system
+    templates:
+      en:
+        subject: Phone Verification Confirmation
+        template_path: templates/en/phone_verification_confirmation.tpl
+  - name: Change Password Confirmation
+    key: codes.email.change_password.confirmation.code
+    topic: barong_system
+    templates:
+      en:
+        subject: Change Password Confirmation
+        template_path: templates/en/change_password_confirmation.tpl
+  - name: Unbind OTP Confirmation
+    key: codes.email.unbind_otp.confirmation.code
+    topic: barong_system
+    templates:
+      en:
+        subject: Unbind OTP Confirmation
+        template_path: templates/en/unbind_otp_confirmation.tpl
+  - name: Unbind Phone Confirmation
+    key: codes.email.unbind_phone.confirmation.code
+    topic: barong_system
+    templates:
+      en:
+        subject: Unbind Phone Confirmation
+        template_path: templates/en/unbind_phone_confirmation.tpl
+  - name: Withdraw Confirmation
+    key: codes.email.withdrawal.confirmation.code
+    topic: barong_system
+    templates:
+      en:
+        subject: Withdraw Confirmation
+        template_path: templates/en/withdrawal_confirmation.tpl

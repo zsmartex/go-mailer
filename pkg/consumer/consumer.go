@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"bytes"
+	"context"
 	"html"
 	"os"
 	"strings"
@@ -12,7 +13,8 @@ import (
 
 	"github.com/zsmartex/go-mailer/internal/config"
 	"github.com/zsmartex/go-mailer/pkg/eventapi"
-	"github.com/zsmartex/pkg/services"
+	"github.com/zsmartex/pkg/v2/infrastucture/kafka"
+	"github.com/zsmartex/pkg/v2/log"
 )
 
 type Consumer struct {
@@ -36,38 +38,42 @@ func (c *Consumer) Run() {
 		topics = append(topics, exchange.Name)
 	}
 
-	config.Logger.Info("Starting mailer...")
+	ctx := context.Background()
+
+	log.Info("Starting mailer...")
 
 	borkers := strings.Split(os.Getenv("KAFKA_BROKERS"), ",")
-	consumer, err := services.NewKafkaConsumer(borkers, "zsmartex-mailer", topics)
+	consumer, err := kafka.NewConsumer(ctx, borkers, "zsmartex-mailer", topics...)
 	if err != nil {
-		config.Logger.Panicf("Failed to connect to kafka brokers err: %v", err)
+		log.Panicf("Failed to connect to kafka brokers err: %v", err)
 	}
 
 	for {
-		records, err := consumer.Poll()
+		records, err := consumer.Poll(ctx)
 		if err != nil {
-			config.Logger.Fatalf("Failed to poll from consumer err: %v", err)
+			log.Fatalf("Failed to poll from consumer err: %v", err)
 		}
 
 		for _, record := range records {
+			log.Debugf("Received event: %s", string(record.Key))
 			var eventConf *config.Event
 			for _, e := range c.config.Events {
 				if bytes.Equal(record.Key, []byte(e.Key)) {
 					eventConf = &e
+					break
 				}
 			}
 
 			if eventConf == nil {
-				config.Logger.Warnf("Not found event for key: %s", string(record.Key))
-				consumer.CommitRecords(*record)
+				log.Warnf("Not found event for key: %s", string(record.Key))
+				consumer.CommitRecords(ctx, *record)
 				continue
 			}
 
 			signer := c.config.Topics[eventConf.Topic].Signer
 
 			c.handleEvent(eventConf, string(record.Value), signer)
-			consumer.CommitRecords(*record)
+			consumer.CommitRecords(ctx, *record)
 		}
 	}
 }
@@ -76,19 +82,19 @@ func (c *Consumer) handleEvent(eventConf *config.Event, payload, signer string) 
 	validator := c.config.Keychain[signer]
 	claims, err := eventapi.ParseJWT(payload, validator.ValidateJWT)
 	if err != nil {
-		config.Logger.Errorf("Failed to parse jwt err: %v", err)
+		log.Errorf("Failed to parse jwt err: %v", err)
 		return err
 	}
 
 	event, err := eventapi.Unmarshal(claims.Event)
 	if err != nil {
-		config.Logger.Errorf("Failed to unmarshal event err: %v", err)
+		log.Errorf("Failed to unmarshal event err: %v", err)
 		return err
 	}
 
 	record, err := event.FixAndValidate(os.Getenv("DEFAULT_LANGUAGE"))
 	if err != nil {
-		config.Logger.Errorf("Failed to validate event err: %v", err)
+		log.Errorf("Failed to validate event err: %v", err)
 		return err
 	}
 
@@ -97,14 +103,14 @@ func (c *Consumer) handleEvent(eventConf *config.Event, payload, signer string) 
 	claims.Event["logo"] = os.Getenv("SENDER_LOGO") // set logo url
 	body, err := tpl.Content(claims.Event)
 	if err != nil {
-		config.Logger.Errorf("Failed to execution template err: %v", err)
+		log.Errorf("Failed to execution template err: %v", err)
 		return err
 	}
 
 	layout_tpl := template.Must(template.ParseFiles("templates/layout.tpl"))
 	var buf bytes.Buffer
 	if err := layout_tpl.Execute(&buf, map[string]interface{}{"Body": body}); err != nil {
-		config.Logger.Errorf("Failed to execute template err: %v", err)
+		log.Errorf("Failed to execute template err: %v", err)
 		return err
 	}
 
@@ -128,10 +134,12 @@ func (c *Consumer) handleEvent(eventConf *config.Event, payload, signer string) 
 	}
 
 	if err := NewEmailSender(conf, email).Send(); err != nil {
-		config.Logger.Errorf("Failed to send email: %v", err)
+		log.Errorf("Failed to send email: %v", err)
 
 		return err
 	}
+
+	log.Debugf("Sent email to: %s", email.ToAddress)
 
 	return nil
 }
