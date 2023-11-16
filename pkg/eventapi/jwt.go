@@ -2,6 +2,7 @@ package eventapi
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 
 	"github.com/dgrijalva/jwt-go"
@@ -13,7 +14,9 @@ type RawEvent map[string]interface{}
 // Claims is JWT Token claims.
 type Claims struct {
 	jwt.StandardClaims
-	Event RawEvent `json:"event"`
+
+	Jti   json.Number `json:"jti"`
+	Event RawEvent    `json:"event"`
 }
 
 // Validator is JSON Web Token validator.
