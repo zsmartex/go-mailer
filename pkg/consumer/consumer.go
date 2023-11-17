@@ -5,77 +5,58 @@ import (
 	"context"
 	"html"
 	"os"
-	"strings"
 	"text/template"
+	"time"
 
-	"github.com/gookit/goutil/fsutil"
-	"gopkg.in/yaml.v3"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/zsmartex/pkg/v2/infrastructure/kafka_fx"
+	"github.com/zsmartex/pkg/v2/log"
+	"go.uber.org/fx"
 
 	"github.com/zsmartex/go-mailer/internal/config"
 	"github.com/zsmartex/go-mailer/pkg/eventapi"
-	"github.com/zsmartex/pkg/v2/infrastucture/kafka"
-	"github.com/zsmartex/pkg/v2/log"
 )
+
+var (
+	Module = fx.Module("consumer_fx",
+		fx.Supply(kafka_fx.Group("mailer")),
+		fx.Supply(time.NewTicker(time.Second)),
+		fx.Supply(fx.Annotate(true, fx.ParamTags(`name:"at_end"`))),
+		kafka_fx.ConsumerModule,
+		fx.Provide(fx.Annotate(NewConsumer, fx.As(new(kafka_fx.ConsumerSubscriber)))),
+		fx.Invoke(registerHooks),
+	)
+)
+
+var _ kafka_fx.ConsumerSubscriber = (*Consumer)(nil)
 
 type Consumer struct {
 	config *config.Config
 }
 
-func NewConsumer() *Consumer {
-	var config *config.Config
-	mailerBytes := fsutil.MustReadFile("config/mailer.yml")
-
-	yaml.Unmarshal(mailerBytes, &config)
-
+func NewConsumer(config *config.Config) *Consumer {
 	return &Consumer{
 		config: config,
 	}
 }
 
-func (c *Consumer) Run() {
-	topics := make([]string, 0)
-	for _, exchange := range c.config.Topics {
-		topics = append(topics, exchange.Name)
-	}
-
-	ctx := context.Background()
-
-	log.Info("Starting mailer...")
-
-	borkers := strings.Split(os.Getenv("KAFKA_BROKERS"), ",")
-	consumer, err := kafka.NewConsumer(ctx, borkers, "zsmartex-mailer", topics...)
-	if err != nil {
-		log.Panicf("Failed to connect to kafka brokers err: %v", err)
-	}
-
-	for {
-		records, err := consumer.Poll(ctx)
-		if err != nil {
-			log.Fatalf("Failed to poll from consumer err: %v", err)
-		}
-
-		for _, record := range records {
-			log.Debugf("Received event: %s", string(record.Key))
-			var eventConf *config.Event
-			for _, e := range c.config.Events {
-				if bytes.Equal(record.Key, []byte(e.Key)) {
-					eventConf = &e
-					break
-				}
-			}
-
-			if eventConf == nil {
-				log.Warnf("Not found event for key: %s", string(record.Key))
-				consumer.CommitRecords(ctx, *record)
-				continue
-			}
-
-			signer := c.config.Topics[eventConf.Topic].Signer
-
-			c.handleEvent(eventConf, string(record.Value), signer)
-			consumer.CommitRecords(ctx, *record)
+func (c *Consumer) OnMessage(record *kgo.Record) error {
+	log.Debugf("Received event: %s", string(record.Key))
+	var eventConf *config.Event
+	for _, e := range c.config.Events {
+		if bytes.Equal(record.Key, []byte(e.Key)) {
+			eventConf = &e
+			break
 		}
 	}
+
+	if eventConf == nil {
+		return nil
+	}
+
+	signer := c.config.Topics[eventConf.Topic].Signer
+
+	return c.handleEvent(eventConf, string(record.Value), signer)
 }
 
 func (c *Consumer) handleEvent(eventConf *config.Event, payload, signer string) error {
@@ -142,4 +123,13 @@ func (c *Consumer) handleEvent(eventConf *config.Event, payload, signer string) 
 	log.Debugf("Sent email to: %s", email.ToAddress)
 
 	return nil
+}
+
+func registerHooks(config *config.Config, kafkaConsumer *kafka_fx.Consumer) error {
+	topics := make([]kafka_fx.Topic, 0)
+	for _, exchange := range config.Topics {
+		topics = append(topics, kafka_fx.Topic(exchange.Name))
+	}
+
+	return kafkaConsumer.AddConsumeTopics(context.Background(), topics...)
 }

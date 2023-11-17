@@ -1,77 +1,60 @@
 package config
 
 import (
-	"bytes"
-	"html/template"
-	"path/filepath"
-	"strings"
+	"github.com/caarlos0/env/v10"
+	"github.com/cockroachdb/errors"
+	"github.com/gookit/goutil/fsutil"
+	"github.com/zsmartex/pkg/v2/config"
+	"go.uber.org/fx"
+	"gopkg.in/yaml.v3"
 
 	"github.com/zsmartex/go-mailer/pkg/eventapi"
-	"github.com/zsmartex/pkg/v2/log"
 )
 
-// Template represents email massage content and subject.
-type Template struct {
-	Subject      string `yaml:"subject"`
-	TemplatePath string `yaml:"template_path,omitempty"`
-	Template     string `yaml:"template,omitempty"`
-}
-
-// Event represent configuration for listening an message from RabbitMQ.
-type Event struct {
-	Name       string              `yaml:"name"`
-	Key        string              `yaml:"key"`
-	Topic      string              `yaml:"topic"`
-	Templates  map[string]Template `yaml:"templates"`
-	Expression string              `yaml:"expression"`
-}
-
-// Exchange contains exchange name and signer unique identifier.
-type Topic struct {
-	Name   string `yaml:"name"`
-	Signer string `yaml:"signer"`
-}
+var Module = fx.Module("config_fx", fx.Provide(NewConfig, provideConfig))
 
 // Config represents application configuration model.
 type Config struct {
+	Kafka    config.Kafka
 	Keychain map[string]eventapi.Validator `yaml:"keychain"`
 	Topics   map[string]Topic              `yaml:"topics"`
 	Events   []Event                       `yaml:"events"`
 }
 
-func (e *Event) Template(key string) Template {
-	return e.Templates[key]
-}
-
-// Content returns ready to go message with specified data.
-// Note: "template" has bigger priority, than "template_path".
-func (t *Template) Content(data interface{}) (string, error) {
-	var err error
-
-	buff := new(bytes.Buffer)
-	var tpl *template.Template
-
-	funcs := template.FuncMap{
-		"upcase":   strings.ToUpper,
-		"downcase": strings.ToLower,
+func NewConfig() (*Config, error) {
+	var cfgYaml *struct {
+		Keychain map[string]eventapi.Validator `yaml:"keychain"`
+		Topics   map[string]Topic              `yaml:"topics"`
+		Events   []Event                       `yaml:"events"`
 	}
+	mailerBytes := fsutil.MustReadFile("config/mailer.yml")
 
-	tpl, err = template.New(filepath.Base(t.TemplatePath)).Funcs(funcs).ParseFiles(t.TemplatePath)
+	err := yaml.Unmarshal(mailerBytes, &cfgYaml)
 	if err != nil {
-		log.Info(1)
-		return "", err
+		return nil, err
 	}
 
-	if err := tpl.Execute(buff, data); err != nil {
-		log.Info(data)
-		return "", err
+	conf := new(Config)
+
+	if err := env.Parse(conf); err != nil {
+		return nil, errors.Newf("parse config: %v", err)
 	}
 
-	return buff.String(), nil
+	conf.Keychain = cfgYaml.Keychain
+	conf.Topics = cfgYaml.Topics
+	conf.Events = cfgYaml.Events
+
+	return conf, nil
 }
 
-func InitConfig() (err error) {
-	log.New("Mailer")
+type OutConfig struct {
+	fx.Out
 
-	return nil
+	Kafka config.Kafka
+}
+
+func provideConfig(config *Config) OutConfig {
+	return OutConfig{
+		Kafka: config.Kafka,
+	}
 }
