@@ -57,7 +57,9 @@ func (event *Event) FixAndValidate(language string) (*Record, error) {
 	}
 
 	if record.User.Email == "" {
-		return nil, errors.New("event: record.user.email is empty")
+		if _, ok := record.Data["email"]; !ok {
+			return nil, errors.New("event: email is empty")
+		}
 	}
 
 	// First language in config is default.

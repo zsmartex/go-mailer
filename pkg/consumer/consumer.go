@@ -98,10 +98,17 @@ func (c *Consumer) handleEvent(eventConf *config.Event, payload, signer string) 
 	content := buf.String()
 	content = html.UnescapeString(content)
 
+	var toAddress string
+	if len(record.User.Email) > 0 {
+		toAddress = record.User.Email
+	} else {
+		toAddress = record.Data["email"].(string)
+	}
+
 	email := Email{
 		FromAddress: os.Getenv("SENDER_EMAIL"),
 		FromName:    os.Getenv("SENDER_NAME"),
-		ToAddress:   record.User.Email,
+		ToAddress:   toAddress,
 		Subject:     tpl.Subject,
 		Content:     string(content),
 	}

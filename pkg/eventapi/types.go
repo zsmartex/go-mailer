@@ -13,8 +13,9 @@ type User struct {
 // Record is required payload of event.
 // Each event should have record, otherwice it is not valid!
 type Record struct {
-	User     *User  `json:"user"`
-	Language string `json:"language"`
+	User     *User                  `json:"user"`
+	Language string                 `json:"language"`
+	Data     map[string]interface{} `json:"data"`
 }
 
 // Event represents basic event structure.
