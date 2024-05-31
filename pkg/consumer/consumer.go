@@ -99,10 +99,11 @@ func (c *Consumer) handleEvent(eventConf *config.Event, payload, signer string) 
 	content = html.UnescapeString(content)
 
 	var toAddress string
-	if len(record.User.Email) > 0 {
-		toAddress = record.User.Email
+	emailData, ok := record.Data["email"].(string)
+	if ok {
+		toAddress = emailData
 	} else {
-		toAddress = record.Data["email"].(string)
+		toAddress = record.User.Email
 	}
 
 	email := Email{
