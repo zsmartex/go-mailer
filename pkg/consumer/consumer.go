@@ -13,6 +13,7 @@ import (
 	"github.com/zsmartex/pkg/v2/log"
 	"go.uber.org/fx"
 
+	"github.com/expr-lang/expr"
 	"github.com/zsmartex/go-mailer/internal/config"
 	"github.com/zsmartex/go-mailer/pkg/eventapi"
 )
@@ -77,6 +78,22 @@ func (c *Consumer) handleEvent(eventConf *config.Event, payload, signer string) 
 	if err != nil {
 		log.Errorf("Failed to validate event err: %v", err)
 		return err
+	}
+
+	if len(eventConf.Expression) > 0 {
+		program, err := expr.Compile(eventConf.Expression)
+		if err != nil {
+			return err
+		}
+
+		result, err := expr.Run(program, record)
+		if err != nil {
+			return err
+		}
+
+		if result == false {
+			return nil
+		}
 	}
 
 	tpl := eventConf.Template(record.Language)
