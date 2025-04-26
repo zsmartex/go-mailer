@@ -59,6 +59,9 @@
         font-weight: bold;
         color: #0095ff;
       }
+      .value {
+        font-weight: 500;
+      }
       table .table_title {
         font-weight: normal;
         color: #76808f;

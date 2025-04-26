@@ -81,3 +81,20 @@ events:
       en:
         subject: Withdraw Confirmation
         template_path: templates/en/withdrawal_confirmation.tpl
+  - name: Deposit Successful
+    key: deposits.updated
+    topic: peatio
+    expression: old.credited == false && record.credited == true && record.type == "onchain"
+    templates:
+      en:
+        subject: "{{ .record.currency | upcase }} Deposit Successful - {{ .record.created_at | utc }}"
+        template_path: templates/en/deposit_successful.tpl
+
+  - name: Withdrawal Successful
+    key: withdraws.updated
+    topic: peatio
+    expression: old.status == "confirming" && record.status == "succeed" && record.type == "onchain"
+    templates:
+      en:
+        subject: "{{ .record.currency | upcase }} Withdrawal Successful - {{ .record.created_at | utc }}"
+        template_path: templates/en/withdrawal_successful.tpl
