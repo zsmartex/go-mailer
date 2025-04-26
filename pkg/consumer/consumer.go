@@ -19,11 +19,11 @@ import (
 )
 
 var (
-	Module = fx.Module("consumer_fx",
+	Module = fx.Module(
+		"consumer_fx",
 		fx.Supply(kafka_fx.Group("mailer")),
 		fx.Supply(time.NewTicker(time.Second)),
 		fx.Supply(fx.Annotate(true, fx.ParamTags(`name:"at_end"`))),
-		kafka_fx.ConsumerModule,
 		fx.Provide(fx.Annotate(NewConsumer, fx.As(new(kafka_fx.ConsumerSubscriber)))),
 		fx.Invoke(registerHooks),
 	)
@@ -86,7 +86,7 @@ func (c *Consumer) handleEvent(eventConf *config.Event, payload, signer string) 
 			return err
 		}
 
-		result, err := expr.Run(program, record)
+		result, err := expr.Run(program, claims.Event)
 		if err != nil {
 			return err
 		}
@@ -103,6 +103,11 @@ func (c *Consumer) handleEvent(eventConf *config.Event, payload, signer string) 
 	if err != nil {
 		log.Errorf("Failed to execution template err: %v", err)
 		return err
+	}
+
+	subject, err := tpl.ParseSubject(claims.Event)
+	if err != nil {
+		log.Errorf("Failed to parse subject err: %v", err)
 	}
 
 	layout_tpl := template.Must(template.ParseFiles("templates/layout.tpl"))
@@ -127,7 +132,7 @@ func (c *Consumer) handleEvent(eventConf *config.Event, payload, signer string) 
 		FromAddress: os.Getenv("SENDER_EMAIL"),
 		FromName:    os.Getenv("SENDER_NAME"),
 		ToAddress:   toAddress,
-		Subject:     tpl.Subject,
+		Subject:     subject,
 		Content:     string(content),
 	}
 

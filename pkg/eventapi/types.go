@@ -22,4 +22,5 @@ type Record struct {
 // * "record" - object payload.
 type Event struct {
 	Record map[string]interface{} `json:"record"`
+	Old    map[string]interface{} `json:"old,omitempty"`
 }
